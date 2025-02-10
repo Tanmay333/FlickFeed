@@ -1,70 +1,88 @@
-from fastapi import FastAPI, HTTPException, Depends
-from sqlalchemy.orm import Session
-from backend.models import SessionLocal, Base, engine, User
-from pydantic import BaseModel
-
-# Create the database tables
-Base.metadata.create_all(bind=engine)
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from pydantic import BaseModel, EmailStr
+from passlib.context import CryptContext
+from jose import JWTError, jwt
+from typing import Optional, Dict
 
 app = FastAPI()
 
-# Dependency to get the database session
-def get_db():
-    db = SessionLocal()
+# JWT Configuration
+SECRET_KEY = "your_secret_key"  # Replace with your secret key
+ALGORITHM = "HS256"
+
+# Password Hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# In-memory user store
+fake_users_db: Dict[str, Dict] = {}
+
+# Security Dependency for JWT
+security = HTTPBearer()
+
+# Models
+class UserRegister(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class User(BaseModel):
+    id: int
+    username: str
+    email: EmailStr
+
+# Helper Functions
+def create_access_token(data: dict):
+    return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
+
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
     try:
-        yield db
-    finally:
-        db.close()
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None or username not in fake_users_db:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        user = fake_users_db[username]
+        return User(id=user["id"], username=username, email=user["email"])
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
-# Pydantic schema for user creation and update
-class UserCreate(BaseModel):
-    username: str
-    email: str
+# Routes
+@app.post("/register", response_model=User)
+def register(user: UserRegister):
+    if user.username in fake_users_db:
+        raise HTTPException(status_code=400, detail="Username already exists")
+    
+    hashed_password = get_password_hash(user.password)
+    user_id = len(fake_users_db) + 1
 
-class UserUpdate(BaseModel):
-    username: str
-    email: str
+    fake_users_db[user.username] = {
+        "id": user_id,
+        "username": user.username,
+        "email": user.email,
+        "hashed_password": hashed_password,
+    }
+    return User(id=user_id, username=user.username, email=user.email)
 
-# Create a new user
-@app.post("/users/", response_model=dict)
-def create_user(user: UserCreate, db: Session = Depends(get_db)):
-    db_user = User(username=user.username, email=user.email)
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return {"id": db_user.id, "username": db_user.username, "email": db_user.email}
+@app.post("/login")
+def login(user: UserLogin):
+    db_user = fake_users_db.get(user.username)
+    if not db_user or not verify_password(user.password, db_user["hashed_password"]):
+        raise HTTPException(status_code=401, detail="Incorrect username or password")
+    
+    access_token = create_access_token(data={"sub": user.username})
+    return {"access_token": access_token, "token_type": "bearer"}
 
-# Read user by ID
-@app.get("/users/{user_id}", response_model=dict)
-def read_user(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
-    if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return {"id": user.id, "username": user.username, "email": user.email}
-
-# Update user by ID
-@app.put("/users/{user_id}", response_model=dict)
-def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
-    if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    user.username = user_update.username
-    user.email = user_update.email
-    db.commit()
-    db.refresh(user)
-    return {"id": user.id, "username": user.username, "email": user.email}
-
-# Delete user by ID
-@app.delete("/users/{user_id}", response_model=dict)
-def delete_user(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == user_id).first()
-    if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    db.delete(user)
-    db.commit()
-    return {"message": "User deleted successfully"}
-
-# Add a root endpoint
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to CineVerse API!"}
+@app.get("/users/me", response_model=User)
+def read_users_me(current_user: User = Depends(get_current_user)):
+    return current_user
