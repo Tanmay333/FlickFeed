@@ -3,9 +3,11 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
-from backend.models import User, SessionLocal
+from backend.models import User
+from backend.database import get_db
 from sqlalchemy.orm import Session
+from ..models import User
+
 
 # Secret key to encode JWT tokens
 SECRET_KEY = "your_secret_key"  # Replace with a strong secret!
@@ -33,17 +35,11 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-
-
-# Secret key and algorithm (make sure it's the same as in your token creation)
-SECRET_KEY = "your_secret_key_here"
-ALGORITHM = "HS256"
-
 # OAuth2 scheme to extract the token from the request
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 # Dependency to get the current user based on token
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(SessionLocal)):
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try:
         # Decode the token
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])

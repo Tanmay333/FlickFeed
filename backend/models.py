@@ -1,19 +1,13 @@
-from sqlalchemy import Column, Integer, String, create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import Column, Integer, String
+from backend.database import Base  # Importing Base from database.py
 
-# Define the base class for SQLAlchemy models
-Base = declarative_base()
-
-# Database connection setup
-DATABASE_URL = "sqlite:///./cineverse.db"
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# User model definition
 class User(Base):
-    __tablename__ = "users"
+    __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+
+    def __repr__(self):
+        return f"<User(username='{self.username}', email='{self.email}')>"

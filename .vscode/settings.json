@@ -1,0 +1,7 @@
+{
+  "python.analysis.extraPaths": ["./backend"],
+  "python.envFile": "${workspaceFolder}/.env",
+  "terminal.integrated.env.windows": {
+    "PYTHONPATH": "${workspaceFolder}/backend"
+  }
+}
