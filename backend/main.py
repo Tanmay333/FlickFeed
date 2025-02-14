@@ -151,6 +151,13 @@ Base.metadata.create_all(bind=engine)
 app.include_router(auth_routes.router, prefix="/auth", tags=["Authentication"])
 app.include_router(feed_routes.router, prefix="/feeds", tags=["Feeds"])
 
+
+app = FastAPI()
+
+# Include your routers
+app.include_router(auth_routes.router)
+app.include_router(feed_routes.router)
+
 @app.get("/")
-def read_root():
+def home():
     return {"message": "Welcome to FlickFeed API!"}

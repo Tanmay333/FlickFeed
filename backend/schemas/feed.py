@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from backend.auth.auth import get_current_user
 from backend.database import get_db
 from backend.schemas.feed import FeedCreate
-from backend.models.feed import Feed
-from backend.models.user import User
+from backend.model_package.feed import Feed
+from backend.model_package.user import User
 
 router = APIRouter()
 

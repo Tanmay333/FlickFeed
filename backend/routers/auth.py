@@ -3,7 +3,7 @@ from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from backend.schemas.auth import UserCreate, UserLogin
-from backend.models.user import User
+from backend.model_package.user import User
 from backend.database import get_db
 from sqlalchemy.orm import Session
 

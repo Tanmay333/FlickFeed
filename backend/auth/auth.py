@@ -1,13 +1,11 @@
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
-from backend.models import User
 from backend.database import get_db
 from sqlalchemy.orm import Session
-from ..models import User
-
+from backend.model_package import User  
 
 # Secret key to encode JWT tokens
 SECRET_KEY = "your_secret_key"  # Replace with a strong secret!
@@ -57,3 +55,16 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def get_password_hash(password: str) -> str:
+    """Hashes a password using bcrypt."""
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verifies a password against a stored hash."""
+    return pwd_context.verify(plain_password, hashed_password)

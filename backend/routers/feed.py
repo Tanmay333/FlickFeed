@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from backend.models.feed import Feed
+from backend.model_package.feed import Feed
 from backend.schemas.feed import FeedCreate
 from backend.database import get_db
 from sqlalchemy.orm import Session
@@ -15,7 +15,7 @@ def create_feed(feed: FeedCreate, db: Session = Depends(get_db)):
     db.refresh(db_feed)
     return db_feed
 
-@router.get("/", response_model=List[FeedCreate])
+@router.get("/", response_model=List[Feed])
 def get_feeds(db: Session = Depends(get_db)):
     feeds = db.query(Feed).all()
     return feeds
