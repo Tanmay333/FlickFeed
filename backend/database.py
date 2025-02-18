@@ -3,7 +3,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 # SQLite Database URL
-DATABASE_URL = "sqlite:///flickfeed.db"
+DATABASE_URL = "sqlite:///backend/flickfeed.db"
 
 # Create an engine that connects to the SQLite database
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
