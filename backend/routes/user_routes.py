@@ -1,9 +1,18 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from backend.database import get_db
+from backend.model_package.user import User  # Import User model
+from backend.auth import get_current_user  # Import get_current_user function
+from backend.database import get_db  # Import get_db function
 from backend.model_package.user import User  # Import User model
 from pydantic import BaseModel
 from typing import List  # Import List for type hinting
+
+
+# Define RoleUpdate model
+class RoleUpdate(BaseModel):
+    email: str
+    new_role: str
 
 router = APIRouter()
 
@@ -64,3 +73,26 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     db.delete(user)
     db.commit()
     return {"message": f"User with ID {user_id} deleted successfully"}
+
+
+@router.put("/admin/update-role")
+def update_user_role(
+    role_data: RoleUpdate,  
+    db: Session = Depends(get_db),  
+    current_user: User = Depends(get_current_user)  
+):
+    # Check if the requester is an admin
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+    
+    # Fetch the user whose role needs to be changed
+    user_to_update = db.query(User).filter(User.email == role_data.email).first()
+
+    if not user_to_update:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Update the role
+    user_to_update.role = role_data.new_role
+    db.commit()
+
+    return {"message": "User role updated successfully"}
