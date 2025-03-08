@@ -6,6 +6,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.model_package.user import User
+from redis_config import redis_client  # Import Redis connection
 
 #  Secret Key & Algorithm (Use an environment variable in production)
 SECRET_KEY = "your_secret_key"  # Replace with a secure secret!
@@ -43,8 +44,13 @@ def create_refresh_token(data: dict) -> str:
 #  OAuth2 Scheme for Token Authentication
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
+#  Get Current Token
+def get_current_token(token: str = Depends(oauth2_scheme)) -> str:
+    """Extracts the token from the request."""
+    return token
+
 #  Get Current User
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
+def get_current_user(token: str = Depends(get_current_token), db: Session = Depends(get_db)) -> User:
     """
     Decodes the JWT token, fetches the user from the database, and returns the user object.
     """
@@ -98,3 +104,20 @@ def role_required(allowed_roles: list):
         return current_user  
     
     return check_role
+
+@router.post("/logout")
+async def logout(user: dict = Depends(get_current_user), token: str = Depends(get_current_token)):
+    """
+    Logout the user by blacklisting the token.
+    """
+    try:
+        # Store token in Redis with expiration time
+        redis_client.setex(token, 900, "blacklisted")  # 15 min expiration
+
+        return {"message": "Successfully logged out"}
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Logout failed"
+        )

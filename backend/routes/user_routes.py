@@ -6,20 +6,31 @@ from backend.database import get_db  # Import get_db function
 from pydantic import BaseModel
 from typing import List
 
+
 # Define Pydantic models
 class UserCreate(BaseModel):
     username: str
     email: str
 
 
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: str
+
+    class Config:
+        from_attributes = True  # Ensures correct serialization from ORM models
+
+
 class RoleUpdate(BaseModel):
     email: str
     new_role: str
 
-router = APIRouter()
+
+router = APIRouter(prefix="/users", tags=["Users"])  # Add prefix to all routes
 
 # Create a new user
-@router.post("/", response_model=UserCreate)
+@router.post("/", response_model=UserResponse)
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.email == user.email).first()
     if existing_user:
@@ -31,21 +42,24 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
     return new_user
 
+
 # Retrieve all users
-@router.get("/", response_model=List[UserCreate])
+@router.get("/", response_model=List[UserResponse])
 def get_all_users(db: Session = Depends(get_db)):
     return db.query(User).all()
 
+
 # Retrieve a single user by ID
-@router.get("/{user_id}")
+@router.get("/{user_id}", response_model=UserResponse)
 def get_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-#  Update user details
-@router.put("/{user_id}")
+
+# Update user details
+@router.put("/{user_id}", response_model=UserResponse)
 def update_user(user_id: int, updated_user: UserCreate, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -57,12 +71,14 @@ def update_user(user_id: int, updated_user: UserCreate, db: Session = Depends(ge
     db.refresh(user)
     return user
 
+
 # Retrieve the current authenticated user
-@router.get("/me")
+@router.get("/me", response_model=UserResponse)
 def get_profile(current_user: User = Depends(get_current_user)):
     return current_user
 
-#  Delete a user
+
+# Delete a user
 @router.delete("/{user_id}")
 def delete_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
@@ -71,14 +87,15 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
 
     db.delete(user)
     db.commit()
-    return {"message": f"User with ID {user_id} deleted successfully"}
+    return {"message": f"User {user.username} (ID: {user.id}) deleted successfully"}
 
-#  Admin: Update user role
+
+# Admin: Update user role
 @router.put("/admin/update-role")
 def update_user_role(
     role_data: RoleUpdate,  
     db: Session = Depends(get_db),  
-    current_user: User = Depends(role_required(["admin"]))  #  Restrict to admin users
+    current_user: User = Depends(role_required(["admin"]))  # Restrict to admin users
 ):
     user_to_update = db.query(User).filter(User.email == role_data.email).first()
     if not user_to_update:

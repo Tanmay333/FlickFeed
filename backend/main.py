@@ -12,5 +12,5 @@ app.include_router(feed_routes.router, prefix="/feeds", tags=["Feeds"])
 app.include_router(user_routes.router, prefix="/users", tags=["Users"])
 
 @app.get("/")
-def home():
-    return {"message": "Welcome to FlickFeed API!"}
+async def root():
+    return {"message": "Welcome to FlickFeed!"}
