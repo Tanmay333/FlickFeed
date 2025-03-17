@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String
-from backend.database import Base  # ✅ Use absolute import
+from backend.database import Base  #  Use absolute import
 
 class User(Base):
     __tablename__ = "users"
@@ -8,4 +8,4 @@ class User(Base):
     username = Column(String, index=True)
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)  # Ensure password is hashed
-    role = Column(String, default="user")  # ✅ Add role field
+    role = Column(String, default="user")  # Add role field

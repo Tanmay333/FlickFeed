@@ -10,3 +10,6 @@ __pycache__/
 
 # Ignore environment variable files (if any)
 .env
+
+# Ignore alembic.ini files (if any)
+alembic.ini 
