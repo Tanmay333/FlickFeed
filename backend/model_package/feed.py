@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Text
-from backend.database import Base  # ✅ Ensure this is correct
+from backend.database import Base  # ✅ Use absolute import
 
 class Feed(Base):
     __tablename__ = "feeds"  # ✅ Ensure table name is set

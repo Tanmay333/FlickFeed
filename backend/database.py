@@ -1,21 +1,20 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text
+from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
+# SQLite Database URL (Ensure correct relative path)
+DATABASE_URL = "sqlite:///./flickfeed.db"  # Added './' to ensure proper relative path handling
 
-# SQLite Database URL
-DATABASE_URL = "sqlite:///backend/flickfeed.db"
-
-# Create an engine that connects to the SQLite database
+# Create the database engine
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 
-# Create a session for interacting with the database
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Create a base class for database models
+# Base class for ORM models
 Base = declarative_base()
 
-# Dependency function to get a session
+# Session factory
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Dependency to get a database session
 def get_db():
     db = SessionLocal()
     try:
